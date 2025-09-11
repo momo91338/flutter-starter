@@ -98,6 +98,13 @@ class HomeScreenState extends State<HomeScreen> {
                       },
                       child: const Text('Login With Email'),
                     ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        context.go(AppRouter.oauthAuthPath);
+                      },
+                      child: const Text('Login With OAuth'),
+                    ),
                   ],
                 )
                 // Loading indicator when Privy is not ready
