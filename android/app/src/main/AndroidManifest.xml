@@ -34,6 +34,8 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <!-- Custom URL scheme for OAuth redirects - used in OAuth login flows 
+                     This matches the appUrlScheme parameter in privyManager.privy.oAuth.login() calls -->
                 <data android:scheme="privytestappflutter" />
             </intent-filter>
         </activity>

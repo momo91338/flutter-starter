@@ -45,6 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -52,6 +53,8 @@
 			<string>privy.oauth</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+      	<!-- Custom URL scheme for OAuth redirects - used in OAuth login flows 
+	      This matches the appUrlScheme parameter in privyManager.privy.oAuth.login() calls -->
 				<string>privytestappflutter</string>
 			</array>
 		</dict>
