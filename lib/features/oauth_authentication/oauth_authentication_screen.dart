@@ -152,7 +152,13 @@ class OAuthAuthenticationScreenState extends State<OAuthAuthenticationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login with OAuth")),
+      appBar: AppBar(
+        title: const Text("Login with OAuth"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/'),
+        ),
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(20.0),

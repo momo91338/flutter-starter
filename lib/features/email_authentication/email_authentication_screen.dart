@@ -121,9 +121,9 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
           });
           showMessage("Authentication successful!");
 
-          // Navigate to authenticated screen
+          // Navigate to authenticated screen with user
           if (mounted) {
-            context.go(AppRouter.authenticatedPath);
+            context.go(AppRouter.authenticatedPath, extra: user);
           }
         },
         // Failure handler - authentication failed
