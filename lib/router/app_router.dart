@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_starter/features/authenticated/authenticated_screen.dart';
 import 'package:flutter_starter/features/email_authentication/email_authentication_screen.dart';
 import 'package:flutter_starter/features/oauth_authentication/oauth_authentication_screen.dart';
+import 'package:flutter_starter/features/sms_authentication/sms_authentication_screen.dart';
 import 'package:flutter_starter/features/home/home_screen.dart';
 import 'package:flutter_starter/features/wallet/eth_wallet_screen.dart';
 import 'package:flutter_starter/features/wallet/solana_wallet_screen.dart';
@@ -23,6 +24,7 @@ class AppRouter {
   static const String homeRoute = 'home';
   static const String authenticatedRoute = 'authenticated';
   static const String emailAuthRoute = 'email-auth';
+  static const String smsAuthRoute = 'sms-auth';
   static const String oauthAuthRoute = 'oauth-auth';
   static const String ethWalletRoute = 'eth-wallet';
   static const String solanaWalletRoute = 'solana-wallet';
@@ -30,6 +32,7 @@ class AppRouter {
   // Route path constants
   static const String homePath = '/';
   static const String emailAuthPath = '/email-auth';
+  static const String smsAuthPath = '/sms-auth';
   static const String oauthAuthPath = '/oauth-auth';
   static const String authenticatedPath = '/profile';
   static const String ethWalletPath = '/eth-wallet';
@@ -58,6 +61,11 @@ class AppRouter {
         path: emailAuthPath,
         name: emailAuthRoute,
         builder: (context, state) => const EmailAuthenticationScreen(),
+      ),
+      GoRoute(
+        path: smsAuthPath,
+        name: smsAuthRoute,
+        builder: (context, state) => const SmsAuthenticationScreen(),
       ),
       GoRoute(
         path: oauthAuthPath,
