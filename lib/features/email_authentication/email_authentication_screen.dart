@@ -3,9 +3,10 @@ import 'package:flutter_starter/core/privy_manager.dart';
 import 'package:flutter_starter/router/app_router.dart';
 import 'package:go_router/go_router.dart';
 
-
 class EmailAuthenticationScreen extends StatefulWidget {
-  const EmailAuthenticationScreen({super.key});
+  final bool isLinking;
+
+  const EmailAuthenticationScreen({super.key, this.isLinking = false});
 
   @override
   EmailAuthenticationScreenState createState() =>
@@ -33,7 +34,7 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
   }
 
   /// Sends OTP to the provided email
-  /// 
+  ///
   /// NOTE: To use email authentication, you must enable it in the Privy Dashboard:
   /// https://dashboard.privy.io/apps?page=login-methods
   Future<void> sendCode() async {
@@ -87,8 +88,8 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
     }
   }
 
-  /// Logs in using code and email, then navigates to the authenticated screen on success
-  Future<void> login() async {
+  /// Logs in or links using code and email
+  Future<void> authenticateOrLink() async {
     // Validate the verification code input
     String code = codeController.text.trim();
     if (code.isEmpty) {
@@ -103,39 +104,57 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
     });
 
     try {
-      // Call Privy SDK to verify the code and complete authentication
-      // This performs verification against Privy's authentication service
-      final result = await privyManager.privy.email.loginWithCode(
-        code: code, // The verification code entered by user
-        email:
-            emailController.text.trim(), // The email address to verify against
-      );
+      if (widget.isLinking) {
+        // Handle linking case
+        final result = await privyManager.privy.email.linkWithCode(
+          code: code,
+          email: emailController.text.trim(),
+        );
 
-      // Handle the authentication result
-      result.fold(
-        // Success handler - user was authenticated
-        onSuccess: (user) {
-          // user is a PrivyUser object containing the authenticated user's information
-          setState(() {
-            isLoading = false;
-          });
-          showMessage("Authentication successful!");
+        result.fold(
+          onSuccess: (_) {
+            setState(() {
+              isLoading = false;
+            });
+            showMessage("Email linked successfully!");
+            if (mounted) {
+              Navigator.of(context).pop(true);
+            }
+          },
+          onFailure: (error) {
+            setState(() {
+              errorMessage = error.message;
+              isLoading = false;
+            });
+            showMessage("Linking error: ${error.message}", isError: true);
+          },
+        );
+      } else {
+        // Handle login case
+        final result = await privyManager.privy.email.loginWithCode(
+          code: code,
+          email: emailController.text.trim(),
+        );
 
-          // Navigate to authenticated screen with user
-          if (mounted) {
-            context.go(AppRouter.authenticatedPath, extra: user);
-          }
-        },
-        // Failure handler - authentication failed
-        onFailure: (error) {
-          // Common failures: invalid code, expired code, too many attempts
-          setState(() {
-            errorMessage = error.message;
-            isLoading = false;
-          });
-          showMessage("Login error: ${error.message}", isError: true);
-        },
-      );
+        result.fold(
+          onSuccess: (user) {
+            setState(() {
+              isLoading = false;
+            });
+            showMessage("Authentication successful!");
+            if (mounted) {
+              context.go(AppRouter.authenticatedPath, extra: user);
+            }
+          },
+          onFailure: (error) {
+            setState(() {
+              errorMessage = error.message;
+              isLoading = false;
+            });
+            showMessage("Login error: ${error.message}", isError: true);
+          },
+        );
+      }
     } catch (e) {
       // Handle unexpected exceptions (network issues, etc.)
       setState(() {
@@ -151,10 +170,16 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Email Authentication'),
+        title: Text(
+          widget.isLinking ? 'Link Email Account' : 'Email Authentication',
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
+          onPressed:
+              () =>
+                  widget.isLinking
+                      ? Navigator.of(context).pop()
+                      : context.go('/'),
         ),
       ),
       body: Padding(
@@ -166,7 +191,7 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Login with Email',
+                  widget.isLinking ? 'Link Email Account' : 'Login with Email',
                   style: Theme.of(context).textTheme.headlineLarge,
                   textAlign: TextAlign.center,
                 ),
@@ -227,11 +252,15 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
                   const SizedBox(height: 20),
 
                   ElevatedButton(
-                    onPressed: isLoading ? null : login,
+                    onPressed: isLoading ? null : authenticateOrLink,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Text(
-                        isLoading ? "Verifying..." : "Verify & Login",
+                        isLoading
+                            ? "Verifying..."
+                            : (widget.isLinking
+                                ? "Verify & Link"
+                                : "Verify & Login"),
                       ),
                     ),
                   ),

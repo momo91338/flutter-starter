@@ -1,23 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_starter/features/email_authentication/email_authentication_screen.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 
 /// Widget that displays all linked accounts for a Privy user
 class LinkedAccountsWidget extends StatelessWidget {
   final PrivyUser user;
+  final VoidCallback? onAccountLinked;
 
-  const LinkedAccountsWidget({super.key, required this.user});
+  const LinkedAccountsWidget({
+    super.key,
+    required this.user,
+    this.onAccountLinked,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final hasEmail = user.linkedAccounts.any(
+      (account) => account is EmailAccount,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Linked Accounts", style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 10),
-        if (user.linkedAccounts.isEmpty)
+        if (user.linkedAccounts.isEmpty && !hasEmail)
           const Text("No linked accounts", style: TextStyle(color: Colors.grey))
-        else
+        else ...[
           ...user.linkedAccounts.map((account) => _buildAccountTile(account)),
+          if (!hasEmail) _buildLinkEmailButton(context),
+        ],
       ],
     );
   }
@@ -91,6 +103,35 @@ class LinkedAccountsWidget extends StatelessWidget {
         title: Text("${account.type.toUpperCase()} Account"),
         dense: true,
       );
+    }
+  }
+
+  Widget _buildLinkEmailButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: ListTile(
+        leading: const Icon(Icons.email_outlined, color: Colors.blue),
+        title: const Text("Link Email Account"),
+        subtitle: const Text("Add an email address to your account"),
+        trailing: ElevatedButton(
+          onPressed: () => _linkEmailAccount(context),
+          child: const Text("Link"),
+        ),
+        dense: true,
+      ),
+    );
+  }
+
+  Future<void> _linkEmailAccount(BuildContext context) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => const EmailAuthenticationScreen(isLinking: true),
+      ),
+    );
+
+    if (result == true) {
+      // Trigger refresh callback if provided
+      onAccountLinked?.call();
     }
   }
 }
