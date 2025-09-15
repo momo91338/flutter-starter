@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_starter/core/privy_manager.dart';
 import 'package:flutter_starter/router/app_router.dart';
+import 'package:flutter_starter/models/auth_action.dart';
 import 'package:go_router/go_router.dart';
 
 class EmailAuthenticationScreen extends StatefulWidget {
-  final bool isLinking;
+  final AuthAction authAction;
 
-  const EmailAuthenticationScreen({super.key, this.isLinking = false});
+  const EmailAuthenticationScreen({super.key, required this.authAction});
 
   @override
   EmailAuthenticationScreenState createState() =>
@@ -19,6 +20,47 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
   bool codeSent = false;
   String? errorMessage;
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill email if updating
+    if (widget.authAction is Update) {
+      emailController.text = (widget.authAction as Update).currentValue;
+    }
+  }
+
+  String _getScreenTitle() {
+    switch (widget.authAction) {
+      case Login():
+        return 'Email Authentication';
+      case Link():
+        return 'Link Email Account';
+      case Update(currentValue: _):
+        return 'Update Email Address';
+    }
+  }
+
+  String _getActionButtonText() {
+    switch (widget.authAction) {
+      case Login():
+        return 'Verify & Login';
+      case Link():
+        return 'Verify & Link';
+      case Update(currentValue: _):
+        return 'Verify & Update';
+    }
+  }
+
+  void _handleBackNavigation() {
+    switch (widget.authAction) {
+      case Login():
+        context.go('/');
+      case Link():
+      case Update(currentValue: _):
+        Navigator.of(context).pop();
+    }
+  }
 
   /// Shows a message using a Snackbar
   void showMessage(String message, {bool isError = false}) {
@@ -88,8 +130,8 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
     }
   }
 
-  /// Logs in or links using code and email
-  Future<void> authenticateOrLink() async {
+  /// Performs authentication action based on the type
+  Future<void> performAuthAction() async {
     // Validate the verification code input
     String code = codeController.text.trim();
     if (code.isEmpty) {
@@ -104,56 +146,84 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
     });
 
     try {
-      if (widget.isLinking) {
-        // Handle linking case
-        final result = await privyManager.privy.email.linkWithCode(
-          code: code,
-          email: emailController.text.trim(),
-        );
+      switch (widget.authAction) {
+        case Login():
+          // Handle login case
+          final result = await privyManager.privy.email.loginWithCode(
+            code: code,
+            email: emailController.text.trim(),
+          );
 
-        result.fold(
-          onSuccess: (_) {
-            setState(() {
-              isLoading = false;
-            });
-            showMessage("Email linked successfully!");
-            if (mounted) {
-              Navigator.of(context).pop(true);
-            }
-          },
-          onFailure: (error) {
-            setState(() {
-              errorMessage = error.message;
-              isLoading = false;
-            });
-            showMessage("Linking error: ${error.message}", isError: true);
-          },
-        );
-      } else {
-        // Handle login case
-        final result = await privyManager.privy.email.loginWithCode(
-          code: code,
-          email: emailController.text.trim(),
-        );
+          result.fold(
+            onSuccess: (user) {
+              setState(() {
+                isLoading = false;
+              });
+              showMessage("Authentication successful!");
+              if (mounted) {
+                context.go(AppRouter.authenticatedPath, extra: user);
+              }
+            },
+            onFailure: (error) {
+              setState(() {
+                errorMessage = error.message;
+                isLoading = false;
+              });
+              showMessage("Login error: ${error.message}", isError: true);
+            },
+          );
 
-        result.fold(
-          onSuccess: (user) {
-            setState(() {
-              isLoading = false;
-            });
-            showMessage("Authentication successful!");
-            if (mounted) {
-              context.go(AppRouter.authenticatedPath, extra: user);
-            }
-          },
-          onFailure: (error) {
-            setState(() {
-              errorMessage = error.message;
-              isLoading = false;
-            });
-            showMessage("Login error: ${error.message}", isError: true);
-          },
-        );
+        case Link():
+          // Handle linking case
+          final result = await privyManager.privy.email.linkWithCode(
+            code: code,
+            email: emailController.text.trim(),
+          );
+
+          result.fold(
+            onSuccess: (_) {
+              setState(() {
+                isLoading = false;
+              });
+              showMessage("Email linked successfully!");
+              if (mounted) {
+                Navigator.of(context).pop(true);
+              }
+            },
+            onFailure: (error) {
+              setState(() {
+                errorMessage = error.message;
+                isLoading = false;
+              });
+              showMessage("Linking error: ${error.message}", isError: true);
+            },
+          );
+
+        case Update(currentValue: _):
+          // Handle update case
+          final result = await privyManager.privy.email.updateWithCode(
+            code: code,
+            email: emailController.text.trim(),
+          );
+
+          result.fold(
+            onSuccess: (_) {
+              setState(() {
+                isLoading = false;
+              });
+              showMessage("Email updated successfully!");
+              if (mounted) {
+                Navigator.of(context).pop(true);
+              }
+            },
+            onFailure: (error) {
+              setState(() {
+                errorMessage = error.message;
+                isLoading = false;
+              });
+              showMessage("Update error: ${error.message}", isError: true);
+            },
+          );
       }
     } catch (e) {
       // Handle unexpected exceptions (network issues, etc.)
@@ -170,16 +240,10 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          widget.isLinking ? 'Link Email Account' : 'Email Authentication',
-        ),
+        title: Text(_getScreenTitle()),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed:
-              () =>
-                  widget.isLinking
-                      ? Navigator.of(context).pop()
-                      : context.go('/'),
+          onPressed: () => _handleBackNavigation(),
         ),
       ),
       body: Padding(
@@ -191,7 +255,7 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  widget.isLinking ? 'Link Email Account' : 'Login with Email',
+                  _getScreenTitle(),
                   style: Theme.of(context).textTheme.headlineLarge,
                   textAlign: TextAlign.center,
                 ),
@@ -252,15 +316,11 @@ class EmailAuthenticationScreenState extends State<EmailAuthenticationScreen> {
                   const SizedBox(height: 20),
 
                   ElevatedButton(
-                    onPressed: isLoading ? null : authenticateOrLink,
+                    onPressed: isLoading ? null : performAuthAction,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Text(
-                        isLoading
-                            ? "Verifying..."
-                            : (widget.isLinking
-                                ? "Verify & Link"
-                                : "Verify & Login"),
+                        isLoading ? "Verifying..." : _getActionButtonText(),
                       ),
                     ),
                   ),

@@ -7,6 +7,7 @@ import 'package:flutter_starter/features/sms_authentication/sms_authentication_s
 import 'package:flutter_starter/features/home/home_screen.dart';
 import 'package:flutter_starter/features/wallet/eth_wallet_screen.dart';
 import 'package:flutter_starter/features/wallet/solana_wallet_screen.dart';
+import 'package:flutter_starter/models/auth_action.dart';
 import 'package:go_router/go_router.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 
@@ -60,12 +61,12 @@ class AppRouter {
       GoRoute(
         path: emailAuthPath,
         name: emailAuthRoute,
-        builder: (context, state) => const EmailAuthenticationScreen(),
+        builder: (context, state) => const EmailAuthenticationScreen(authAction: Login()),
       ),
       GoRoute(
         path: smsAuthPath,
         name: smsAuthRoute,
-        builder: (context, state) => const SmsAuthenticationScreen(),
+        builder: (context, state) => const SmsAuthenticationScreen(authAction: Login()),
       ),
       GoRoute(
         path: oauthAuthPath,
