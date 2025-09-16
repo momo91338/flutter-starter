@@ -10,7 +10,7 @@ import 'package:flutter_starter/features/authenticated/widgets/user_profile_widg
 
 class AuthenticatedScreen extends StatefulWidget {
   final PrivyUser user;
-  
+
   const AuthenticatedScreen({super.key, required this.user});
 
   @override
@@ -19,10 +19,17 @@ class AuthenticatedScreen extends StatefulWidget {
 
 class _AuthenticatedScreenState extends State<AuthenticatedScreen> {
   final _privyManager = privyManager;
+  PrivyUser? _currentUser;
 
   // Track loading states
   bool _isCreatingEthereumWallet = false;
   bool _isCreatingSolanaWallet = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUser = widget.user;
+  }
 
   // Show snackbar message
   void _showMessage(String message, {bool isError = false}) {
@@ -36,6 +43,26 @@ class _AuthenticatedScreenState extends State<AuthenticatedScreen> {
     );
   }
 
+  // Refresh user data from Privy
+  Future<void> _refreshUser() async {
+    setState(() {});
+
+    try {
+      final result = await _privyManager.privy.getUser();
+      if (result != null) {
+        setState(() {
+          _currentUser = result;
+        });
+      } else {
+        setState(() {});
+        _showMessage('Failed to refresh user data', isError: true);
+      }
+    } catch (e) {
+      setState(() {});
+      _showMessage('Error refreshing user: $e', isError: true);
+    }
+  }
+
   // Create Ethereum wallet
   Future<void> _createEthereumWallet() async {
     setState(() {
@@ -43,7 +70,9 @@ class _AuthenticatedScreenState extends State<AuthenticatedScreen> {
     });
 
     try {
-      final result = await widget.user.createEthereumWallet(allowAdditional: true);
+      final result = await _currentUser!.createEthereumWallet(
+        allowAdditional: true,
+      );
 
       result.fold(
         onSuccess: (wallet) {
@@ -52,6 +81,7 @@ class _AuthenticatedScreenState extends State<AuthenticatedScreen> {
           setState(() {
             _isCreatingEthereumWallet = false;
           });
+          _refreshUser();
         },
         onFailure: (error) {
           setState(() {
@@ -78,7 +108,7 @@ class _AuthenticatedScreenState extends State<AuthenticatedScreen> {
     });
 
     try {
-      final result = await widget.user.createSolanaWallet();
+      final result = await _currentUser!.createSolanaWallet();
 
       result.fold(
         onSuccess: (wallet) {
@@ -87,6 +117,7 @@ class _AuthenticatedScreenState extends State<AuthenticatedScreen> {
           setState(() {
             _isCreatingSolanaWallet = false;
           });
+          _refreshUser();
         },
         onFailure: (error) {
           setState(() {
@@ -123,32 +154,37 @@ class _AuthenticatedScreenState extends State<AuthenticatedScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Profile'),
-      ),
+      appBar: AppBar(title: const Text('My Profile')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // User Profile Information
-              UserProfileWidget(user: widget.user),
-              const Divider(),
-              const SizedBox(height: 16),
+              if (_currentUser != null) ...[
+                // User Profile Information
+                UserProfileWidget(user: _currentUser!),
+                const Divider(),
+                const SizedBox(height: 16),
 
-              // Linked Accounts
-              LinkedAccountsWidget(user: widget.user),
+                // Linked Accounts
+                LinkedAccountsWidget(
+                  user: _currentUser!,
+                  onAccountLinked: _refreshUser,
+                ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Ethereum Wallets (Navigation handled inside widget)
-              EthereumWalletsWidget(user: widget.user),
+                // Ethereum Wallets (Navigation handled inside widget)
+                EthereumWalletsWidget(user: _currentUser!),
 
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // Solana Wallets (Navigation handled inside widget)
-              SolanaWalletsWidget(user: widget.user),
+                // Solana Wallets (Navigation handled inside widget)
+                SolanaWalletsWidget(user: _currentUser!),
+              ] else ...[
+                const Center(child: CircularProgressIndicator()),
+              ],
             ],
           ),
         ),
